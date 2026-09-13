@@ -8,6 +8,7 @@ saveExact: true
 packages:
   - 'packages/*'
   - 'apps/*'
+  - infra
 
 allowBuilds:
   esbuild: true
@@ -21,6 +22,9 @@ catalog:
   '@types/react': 19.1.0
   '@types/react-dom': 19.1.0
   '@vitejs/plugin-react': 4.4.1
+  aws-cdk: 2.1140.0
+  aws-cdk-lib: 2.268.0
+  constructs: 10.8.1
   cors: 2.8.5
   eslint: 10.10.0
   eslint-plugin-react-refresh: 0.5.6
@@ -31,3 +35,4 @@ catalog:
   typescript: 5.8.3
   vite: 6.3.5
   vitest: 4.1.11
+  yaml: 2.9.0

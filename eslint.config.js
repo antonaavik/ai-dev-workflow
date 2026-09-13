@@ -9,6 +9,8 @@ export default antfu({
   // React rules for the web app. Only apps/web contains JSX/hooks, so the
   // preset is effectively scoped there; the Express server triggers none of it.
   react: true,
+  // CDK synth output is a generated build artifact.
+  ignores: ['**/cdk.out/**'],
 }).override('antfu/pnpm/pnpm-workspace-yaml', {
   rules: {
     // antfu's default here also enforces `trustPolicy: no-downgrade`, which
@@ -21,5 +23,12 @@ export default antfu({
         shellEmulator: true,
       },
     }],
+  },
+}).append({
+  // CDK constructs register with their scope as a side effect of `new`, so the
+  // no-new rule (which assumes `new` without assignment is a mistake) does not apply.
+  files: ['infra/**/*.ts'],
+  rules: {
+    'no-new': 'off',
   },
 })

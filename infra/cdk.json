@@ -1,0 +1,10 @@
+{
+  "app": "tsx bin/app.ts",
+  "watch": {
+    "include": ["**"],
+    "exclude": ["README.md", "node_modules/**", "dist/**", "test/**"]
+  },
+  "context": {
+    "@aws-cdk/core:newStyleStackSynthesis": true
+  }
+}

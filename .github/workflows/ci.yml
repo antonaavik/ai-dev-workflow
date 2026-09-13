@@ -29,7 +29,7 @@ jobs:
         run: pnpm -r typecheck
 
       - name: Unit + integration tests
-        run: pnpm --filter @dev-workflow/spec-test-coverage test
+        run: pnpm -r test
 
       - name: Coverage gate (blocking)
         # Every active change's touched scenarios/invariants must be covered
