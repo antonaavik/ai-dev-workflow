@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  pre-merge:
+    # Blocking pre-merge tier (ADR-0003): fast, deterministic gates.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm -r typecheck
+
+      - name: Unit + integration tests
+        run: pnpm --filter @dev-workflow/spec-test-coverage test
+
+      - name: Coverage gate (blocking)
+        # Every active change's touched scenarios/invariants must be covered
+        # or waived, with no dangling tags (ADR-0002).
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          failed=0
+          for dir in openspec/changes/*/; do
+            name=$(basename "$dir")
+            [ "$name" = "archive" ] && continue
+            echo "::group::coverage gate — $name"
+            node packages/spec-test-coverage/src/cli.ts check --change "$name" || failed=1
+            echo "::endgroup::"
+          done
+          exit $failed
