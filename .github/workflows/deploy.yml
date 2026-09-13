@@ -1,0 +1,88 @@
+name: Deploy
+
+# ADR-0009: on merge to main, deploy staging → smoke → auto-promote the SAME
+# image digest to prod → smoke, with no manual approval.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write # GitHub OIDC → AWS (no static keys)
+  contents: read
+
+env:
+  AWS_REGION: eu-north-1 # regional resources (ECR, ECS, ALB); CloudFront cert is us-east-1 via CDK
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ github.sha }} # immutable tag both environments are promoted to
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_STAGING }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: aws-actions/amazon-ecr-login@v2
+      - uses: docker/setup-buildx-action@v3
+      - name: Build and push the server image (arm64, tagged by git sha)
+        run: |
+          docker buildx build --platform linux/arm64 \
+            -f apps/server/Dockerfile \
+            -t "${{ vars.ECR_REPOSITORY }}:${{ github.sha }}" --push .
+
+  deploy-staging:
+    needs: [build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_STAGING }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Roll the staging service to the new image
+        run: pnpm --filter infra exec cdk deploy Staging --require-approval never -c imageTag=${{ needs.build.outputs.image }} -c originSecret=${{ secrets.ALB_ORIGIN_SECRET }}
+      - name: Publish the SPA
+        run: scripts/deploy-web.sh "${{ vars.STAGING_WEB_BUCKET }}" "${{ vars.STAGING_DISTRIBUTION_ID }}"
+
+  smoke-staging:
+    needs: [deploy-staging]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: scripts/smoke.sh "${{ vars.STAGING_URL }}"
+
+  deploy-prod:
+    # Auto-promote: runs only when staging smoke passed, using the SAME artifact.
+    needs: [build, smoke-staging]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_PROD }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Roll the prod service to the SAME image (promoted, not rebuilt)
+        run: pnpm --filter infra exec cdk deploy Prod --require-approval never -c imageTag=${{ needs.build.outputs.image }} -c originSecret=${{ secrets.ALB_ORIGIN_SECRET }}
+      - name: Publish the SPA
+        run: scripts/deploy-web.sh "${{ vars.PROD_WEB_BUCKET }}" "${{ vars.PROD_DISTRIBUTION_ID }}"
+
+  smoke-prod:
+    needs: [deploy-prod]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: scripts/smoke.sh "${{ vars.PROD_URL }}"
