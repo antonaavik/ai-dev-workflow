@@ -1,8 +1,8 @@
 {
   "name": "@dev-workflow/server",
+  "type": "module",
   "version": "0.0.1",
   "private": true,
-  "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",

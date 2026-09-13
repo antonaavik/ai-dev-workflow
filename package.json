@@ -1,14 +1,22 @@
 {
   "name": "ai-dev-workflow",
+  "type": "module",
   "version": "0.0.1",
   "private": true,
-  "license": "ISC",
-  "type": "module",
   "packageManager": "pnpm@11.9.0",
+  "license": "ISC",
   "engines": {
     "node": ">=24"
   },
   "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "catalog:",
+    "@eslint-react/eslint-plugin": "catalog:",
+    "eslint": "catalog:",
+    "eslint-plugin-react-refresh": "catalog:"
   }
 }

@@ -2,19 +2,19 @@
   "compilerOptions": {
     "target": "ES2023",
     "lib": ["ES2023"],
+    "moduleDetection": "force",
     "module": "ESNext",
-    "skipLibCheck": true,
 
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
-    "verbatimModuleSyntax": true,
-    "moduleDetection": "force",
-    "noEmit": true,
 
     "strict": true,
+    "noFallthroughCasesInSwitch": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
+    "noEmit": true,
+    "verbatimModuleSyntax": true,
+    "skipLibCheck": true,
     "noUncheckedSideEffectImports": true
   },
   "include": ["vite.config.ts"]
