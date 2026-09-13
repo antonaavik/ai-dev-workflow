@@ -1,4 +1,4 @@
-# AI Playbook
+# AI Dev Workflow
 
 How we drive work with AI in this repo. The spine is: **understand before building, capture decisions as we go, then implement against a spec.**
 
