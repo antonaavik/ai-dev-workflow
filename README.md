@@ -5,17 +5,22 @@ How we drive work with AI in this repo. The spine is: **understand before buildi
 ## The flow
 
 ```
-ticket URL ──▶ start-ticket ──▶ grill-with-docs ──▶ /opsx:propose ──▶ /opsx:apply
-                  (fetch)      (grilling + domain-      (spec +          (implement
-                               modeling)                tasks)           the tasks)
+ticket URL ─▶ start-ticket ─▶ grill-with-docs ─▶ /opsx:propose ─▶ /opsx:apply ─▶ /opsx:archive ─▶ push ─▶ PR
+               (fetch,        (grilling +         (spec +          (implement     (record &                 (team
+                route)         domain-modeling)    tasks)           the tasks)     sync specs)               reviews)
+
+              └─ glossary terms & ADRs captured inline here ─┘   └─ human reads, runs, corrects in-session ─┘
 ```
+
+The whole chain before the PR is advisory (skills + `AGENTS.md`); the PR review is the only enforced gate.
 
 1. **start-ticket** — Drop a Jira/GitHub/Linear issue URL. It fetches the ticket (comments included), distills it to a one-paragraph proposal, and confirms that reading with you.
 2. **grill-with-docs** — Relentless interview to sharpen the plan. Runs two skills together:
    - **grilling** — maps the plan as a design tree, works it in rounds of high-leverage questions (each with a recommendation + reasoning), until nothing is silently assumed.
    - **domain-modeling** — as decisions settle, captures glossary terms in `CONTEXT.md` and records hard-to-reverse trade-offs as ADRs in `docs/adr/`.
 3. **/opsx:propose** — Turns the settled understanding into an OpenSpec change: proposal, delta specs, design, task checklist (in `openspec/`). Skip for trivial work.
-4. **/opsx:apply** — Implements the change step by step against the task checklist. **/opsx:archive** records it when done.
+4. **/opsx:apply** — Implements the change step by step against the task checklist.
+5. **/opsx:archive** — When the change is done, records it and folds its delta specs into the living specs under `openspec/specs/` (moving the change into `openspec/changes/archive/`).
 
 ## When to use what
 
