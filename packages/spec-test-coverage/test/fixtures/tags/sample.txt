@@ -1,0 +1,4 @@
+some fixture test body
+
+// @covers sample/S1
+/* @invariant sample/INV1 */

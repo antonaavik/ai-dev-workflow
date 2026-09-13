@@ -38,6 +38,36 @@ The whole chain before the PR is advisory (skills + `AGENTS.md`); the PR review 
 | `openspec/changes/**` | Change proposals, specs, tasks | OpenSpec |
 | `openspec/specs/**` | Living specs, synced from applied changes | OpenSpec |
 
+## Testing
+
+Testing is bound to the workflow stages, not bolted on at the end. Invariants and scenarios are surfaced while grilling; tests are written from the spec, blind, before the implementation; and the only *enforced* gate is CI at the PR.
+
+```
+grill-with-docs ─▶ /opsx:propose ────▶ /opsx:apply ──────────────▶ /opsx:archive ─▶ push ──▶ PR
+      │                  │              │        │                       │              │
+ invariants +       specs +        [red-first]  [implement]       global map      pre-merge CI
+ scenarios         contract stubs   scenario &   domain +        regenerated      (BLOCKING):
+ surfaced          (NotImplemented) invariant    integration                      unit + integration
+ w/ stable ids     — planning only  tests,       code, real DB                    + smoke e2e
+ (0001, 0004)      (0001)           run RED      (0005)                           + migration up/down
+                                    (0001, 0004)                                  + coverage/dangling
+                                         └──── assertion-red ────┘                  check (0002)
+                                              for right reason                          │
+                                                                                   post-merge (ADVISORY):
+                                                                                   full e2e + mutation
+                                                                                   (0003)
+```
+
+Load-bearing rules (full rationale in `docs/adr/`):
+
+- **The scenario is the contract.** Each `#### Scenario:` / `#### Invariant:` carries a stable id; a test declares what it covers with `@covers`/`@invariant`. ([0001](docs/adr/0001-scenarios-are-the-test-contract.md), [0004](docs/adr/0004-invariants-first-class-and-gated.md))
+- **Blind & red-first.** Acceptance and property tests are written from the spec against `NotImplemented` stubs and must fail on an *assertion* — not a compile error, not a vacuous pass — before any implementation. ([0001](docs/adr/0001-scenarios-are-the-test-contract.md))
+- **Coverage gate — scenario-level, delta-scoped.** Every scenario/invariant the change touches needs a covering test or a visible `[waived: reason]`; dangling `@covers` tags fail too. ([0002](docs/adr/0002-coverage-gate-scenario-level-delta-scoped.md))
+- **Two tiers.** Existence blocks pre-merge (unit + integration + smoke e2e + migration up/down + the coverage check); strength advises post-merge (full e2e + mutation). ([0003](docs/adr/0003-two-tier-test-enforcement.md))
+- **Levels by boundary crossed.** unit = no I/O; integration = one owned boundary (real Postgres via testcontainers, or its own HTTP surface); e2e = the whole stack, nothing faked. Acceptance/property are *provenance*, orthogonal to level. ([0005](docs/adr/0005-test-taxonomy-by-boundary.md))
+
+QA of the skills themselves (`claude plugin eval`) is a separate, deferred track. ([0006](docs/adr/0006-skills-qa-is-a-separate-track.md))
+
 ## Rule of thumb
 
 Don't write code until the plan is shared and (for non-trivial work) a spec exists. Grilling is the thinking; OpenSpec is the committed artifact.

@@ -1,0 +1,7 @@
+export type { CheckInput, CheckResult, CoverageMap, MapEntry, Violation, ViolationKind } from './core.ts'
+export { buildMap, checkChange } from './core.ts'
+export { loadSpecDir } from './io.ts'
+export type { DeltaOp, ItemKind, ParsedSpec, SpecItem } from './parser.ts'
+export { parseSpec } from './parser.ts'
+export type { ScanOptions, Tag } from './scanner.ts'
+export { scanTags } from './scanner.ts'
