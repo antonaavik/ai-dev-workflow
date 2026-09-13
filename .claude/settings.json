@@ -1,0 +1,10 @@
+{
+    "worktree": {
+        "baseRef": "main",
+        "symlinkDirectories": ["node_modules"]
+    },
+    "permissions": {
+        "defaultMode": "auto",
+        "disableBypassPermissionsMode": "disable"
+    }
+}

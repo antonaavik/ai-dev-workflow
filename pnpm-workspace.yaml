@@ -1,0 +1,26 @@
+packages:
+  - "packages/*"
+  - "apps/*"
+
+catalogMode: strict
+saveExact: true
+minimumReleaseAge: 1440
+minimumReleaseAgeStrict: true
+
+catalog:
+  react: 19.1.0
+  react-dom: 19.1.0
+  "@types/react": 19.1.0
+  "@types/react-dom": 19.1.0
+  "@vitejs/plugin-react": 4.4.1
+  vite: 6.3.5
+  typescript: 5.8.3
+  express: 4.21.2
+  "@types/express": 4.17.21
+  cors: 2.8.5
+  "@types/cors": 2.8.17
+  tsx: 4.19.2
+  "@types/node": 22.15.0
+
+allowBuilds:
+  esbuild: true
