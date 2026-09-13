@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 env:
-  AWS_REGION: us-east-1
+  AWS_REGION: eu-north-1 # regional resources (ECR, ECS, ALB); CloudFront cert is us-east-1 via CDK
 
 jobs:
   build:

@@ -11,19 +11,22 @@ import * as elbv2 from 'aws-cdk-lib/aws-elasticloadbalancingv2'
 import * as route53 from 'aws-cdk-lib/aws-route53'
 import * as targets from 'aws-cdk-lib/aws-route53-targets'
 import * as s3 from 'aws-cdk-lib/aws-s3'
-import { CLOUDFRONT_PREFIX_LIST, CONTAINER_PORT, ZONE_NAME } from './config.ts'
+import * as cr from 'aws-cdk-lib/custom-resources'
+import { CLOUDFRONT_PREFIX_LIST_NAME, CONTAINER_PORT, ZONE_NAME } from './config.ts'
 
 export interface AppStackProps extends cdk.StackProps {
   config: EnvConfig
   zone: route53.IHostedZone
   repo: ecr.IRepository
+  /** CloudFront viewer cert from the us-east-1 CertStack (cross-region). */
+  cloudFrontCert: acm.ICertificate
 }
 
 /** One environment (staging or prod): edge, server, networking, DNS/TLS. */
 export class AppStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: AppStackProps) {
     super(scope, id, props)
-    const { config, zone, repo } = props
+    const { config, zone, repo, cloudFrontCert } = props
 
     // Deploy-time inputs (defaults keep `cdk synth` runnable offline).
     const imageTag = String(this.node.tryGetContext('imageTag') ?? 'latest')
@@ -37,7 +40,21 @@ export class AppStack extends cdk.Stack {
     })
 
     const albSg = new ec2.SecurityGroup(this, 'AlbSg', { vpc, description: 'ALB: CloudFront origin-facing only' })
-    albSg.addIngressRule(ec2.Peer.prefixList(CLOUDFRONT_PREFIX_LIST), ec2.Port.tcp(443), 'CloudFront only')
+    // The CloudFront origin-facing prefix list id is region-specific, so resolve
+    // it by name at deploy time rather than hardcoding a per-region id.
+    const cfPrefixList = new cr.AwsCustomResource(this, 'CloudFrontPrefixList', {
+      onUpdate: {
+        service: 'ec2',
+        action: 'describeManagedPrefixLists',
+        parameters: { Filters: [{ Name: 'prefix-list-name', Values: [CLOUDFRONT_PREFIX_LIST_NAME] }] },
+        physicalResourceId: cr.PhysicalResourceId.of('cloudfront-origin-facing-prefix-list'),
+      },
+      policy: cr.AwsCustomResourcePolicy.fromSdkCalls({ resources: cr.AwsCustomResourcePolicy.ANY_RESOURCE }),
+      // describeManagedPrefixLists is in Lambda's built-in SDK; no need to fetch latest.
+      installLatestAwsSdk: false,
+    })
+    const cloudFrontPrefixListId = cfPrefixList.getResponseField('PrefixLists.0.PrefixListId')
+    albSg.addIngressRule(ec2.Peer.prefixList(cloudFrontPrefixListId), ec2.Port.tcp(443), 'CloudFront only')
 
     const taskSg = new ec2.SecurityGroup(this, 'TaskSg', { vpc, description: 'Tasks: from ALB only' })
     taskSg.addIngressRule(albSg, ec2.Port.tcp(CONTAINER_PORT), 'From ALB only')
@@ -120,15 +137,11 @@ export class AppStack extends cdk.Stack {
     })
 
     // --- CloudFront: S3 default behaviour + /api/* → ALB origin ---
-    const cfCert = new acm.Certificate(this, 'CfCert', {
-      domainName: config.hostnames[0],
-      subjectAlternativeNames: config.hostnames.slice(1),
-      validation: acm.CertificateValidation.fromDns(zone),
-    })
+    // Viewer cert comes from the us-east-1 CertStack (cross-region reference).
     const distribution = new cloudfront.Distribution(this, 'Distribution', {
       defaultRootObject: 'index.html',
       domainNames: config.hostnames,
-      certificate: cfCert,
+      certificate: cloudFrontCert,
       defaultBehavior: {
         origin: origins.S3BucketOrigin.withOriginAccessControl(bucket),
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,

@@ -12,11 +12,14 @@ beforeAll(() => {
 
 describe('origin locking and isolation', () => {
   it('[S5] the ALB admits ingress only from the CloudFront prefix list', () => {
+    // Ingress is locked to a prefix list (resolved by lookup), not an open CIDR.
     staging.hasResourceProperties('AWS::EC2::SecurityGroupIngress', {
-      SourcePrefixListId: 'pl-3b927c52',
+      SourcePrefixListId: Match.anyValue(),
       FromPort: 443,
       ToPort: 443,
     })
+    // The prefix list looked up is specifically CloudFront's origin-facing one.
+    expect(JSON.stringify(staging.toJSON())).toContain('com.amazonaws.global.cloudfront.origin-facing')
     // And nothing opens 443 to the world.
     const open = Object.values(staging.findResources('AWS::EC2::SecurityGroupIngress'))
       .some((r: any) => r.Properties?.CidrIp === '0.0.0.0/0' && r.Properties?.FromPort === 443)

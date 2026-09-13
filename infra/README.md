@@ -2,7 +2,7 @@
 
 AWS CDK app that deploys `apps/web` and `apps/server` per ADRs [0007](../docs/adr/0007-aws-deployment-architecture.md)–[0009](../docs/adr/0009-continuous-deployment-to-prod.md).
 
-Stacks (single account, `us-east-1`):
+Stacks (single account, region `eu-north-1`; the CloudFront cert is provisioned in `us-east-1` and referenced cross-region):
 
 - **Core** — the shared Route 53 hosted zone for `good-io.com`, the ECR image repository, and the GitHub OIDC provider + staging/prod deploy roles.
 - **Staging**, **Prod** — one CloudFront distribution each (S3 default behaviour + `/api/*` → ALB), a Fargate service, networking, and DNS/TLS records.

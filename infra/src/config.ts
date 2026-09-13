@@ -12,20 +12,26 @@ export interface EnvConfig {
   memoryLimitMiB: number
 }
 
-/** Region is fixed to us-east-1 so the CloudFront ACM cert lives in-stack (ADR-0007). */
-export const REGION = 'us-east-1'
+/**
+ * Regional resources live near our users (Estonia → Stockholm, ADR-0007).
+ * CloudFront's viewer certificate must live in us-east-1 regardless, so it is
+ * provisioned in a dedicated us-east-1 stack and referenced cross-region.
+ */
+export const REGION = 'eu-north-1'
+export const CLOUDFRONT_CERT_REGION = 'us-east-1'
 export const ACCOUNT = process.env.CDK_DEFAULT_ACCOUNT
 export const ZONE_NAME = 'good-io.com'
 export const GITHUB_REPO = 'antonaavik/ai-dev-workflow'
 
-/**
- * AWS-managed prefix list for CloudFront origin-facing IP ranges in us-east-1
- * (com.amazonaws.global.cloudfront.origin-facing). Locks the ALB to CloudFront.
- */
-export const CLOUDFRONT_PREFIX_LIST = 'pl-3b927c52'
-
 /** Container port the Express server listens on. */
 export const CONTAINER_PORT = 3000
+
+/**
+ * Name of the AWS-managed prefix list for CloudFront origin-facing IPs. Its id
+ * differs per region, so it is resolved by lookup at deploy time rather than
+ * hardcoded (see AppStack).
+ */
+export const CLOUDFRONT_PREFIX_LIST_NAME = 'com.amazonaws.global.cloudfront.origin-facing'
 
 export const ENVIRONMENTS: Record<'staging' | 'prod', EnvConfig> = {
   staging: {

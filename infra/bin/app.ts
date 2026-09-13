@@ -1,12 +1,30 @@
 import * as cdk from 'aws-cdk-lib'
 import { AppStack } from '../src/app-stack.ts'
-import { ACCOUNT, ENVIRONMENTS, REGION } from '../src/config.ts'
+import { CertStack } from '../src/cert-stack.ts'
+import { ACCOUNT, CLOUDFRONT_CERT_REGION, ENVIRONMENTS, REGION } from '../src/config.ts'
 import { CoreStack } from '../src/core-stack.ts'
 
 const app = new cdk.App()
-const env = { account: ACCOUNT, region: REGION }
+const regional = { account: ACCOUNT, region: REGION }
+const certRegion = { account: ACCOUNT, region: CLOUDFRONT_CERT_REGION }
 
-const core = new CoreStack(app, 'Core', { env })
+// crossRegionReferences lets the eu-north-1 stacks consume the us-east-1 cert
+// and the shared hosted zone across regions.
+const core = new CoreStack(app, 'Core', { env: regional, crossRegionReferences: true })
 
-new AppStack(app, 'Staging', { env, config: ENVIRONMENTS.staging, zone: core.zone, repo: core.repo })
-new AppStack(app, 'Prod', { env, config: ENVIRONMENTS.prod, zone: core.zone, repo: core.repo })
+for (const config of [ENVIRONMENTS.staging, ENVIRONMENTS.prod]) {
+  const cert = new CertStack(app, `${config.name}Cert`, {
+    env: certRegion,
+    crossRegionReferences: true,
+    hostnames: config.hostnames,
+    zone: core.zone,
+  })
+  new AppStack(app, config.name, {
+    env: regional,
+    crossRegionReferences: true,
+    config,
+    zone: core.zone,
+    repo: core.repo,
+    cloudFrontCert: cert.certificate,
+  })
+}
